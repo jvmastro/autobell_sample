@@ -9,9 +9,9 @@ external_stylesheets = [dbc.themes.COSMO]
 app = Dash(__name__, external_stylesheets=external_stylesheets)
 server = app.server
 
-with open('projections_autobell.csv', 'rb') as f1:
+with open('https://raw.githubusercontent.com/jvmastro/autobell_sample/main/assets/data/projections_autobell%20copy.csv?token=GHSAT0AAAAAABT5OWKCT2XSMOLLQJ44WS2IYTYXYJA', 'rb') as f1:
     projections = pd.read_csv(f1)
-with open('irr_autobell.csv', 'rb') as f2:
+with open('https://raw.githubusercontent.com/jvmastro/autobell_sample/main/assets/data/irr_autobell.csv?token=GHSAT0AAAAAABT5OWKC36JUYXFMNENPAEX2YTYXXIA', 'rb') as f2:
     irr = pd.read_csv(f2)
     
 projections_55k=projections[projections['cost']=='$5,500.00']
@@ -29,7 +29,7 @@ table = dbc.Table.from_dataframe(projections_55k, striped=True, bordered=True, h
 
 graph = px.bar(irr, x='Year', y='Cash Flow')
 
-autobell_logo = "https://static.wixstatic.com/media/160184_ad4c1492eb71433cab12f62ad924a4ef~mv2.png/v1/crop/x_0,y_0,w_600,h_499/fill/w_210,h_174,al_c,q_85,usm_0.66_1.00_0.01,enc_auto/FluidLytix-Logo.png"
+fluidlytix_logo = "https://static.wixstatic.com/media/160184_ad4c1492eb71433cab12f62ad924a4ef~mv2.png/v1/crop/x_0,y_0,w_600,h_499/fill/w_210,h_174,al_c,q_85,usm_0.66_1.00_0.01,enc_auto/FluidLytix-Logo.png"
 
 navbar = dbc.Navbar(
     dbc.Container(
@@ -38,7 +38,7 @@ navbar = dbc.Navbar(
                 # Use row and col to control vertical alignment of logo / brand
                 dbc.Row(
                     [
-                        dbc.Col(html.Img(src=autobell_logo, height="75px")),
+                        dbc.Col(html.Img(src=fluidlytix_logo, height="75px")),
                         dbc.Col(dbc.NavbarBrand("Fluidlytix Post-Installation Report", className="ml-2", style={"color":"#FFFFFF"})),
                     ],
                     align="center",
