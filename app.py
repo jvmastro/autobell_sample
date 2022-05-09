@@ -23,7 +23,7 @@ savings = savings.rename(columns={"bill_annual": "Annual Water Bill",
                             "savings_10_net": "10-Year Savings",
                             "savings_monthly": "Monthly Savings",
                             "bep_months": "Breakeven Point (Months)",
-                            "cost": "Project Cost"})
+                            "cost": "Water Savings Solution"})
     
 table = dbc.Table.from_dataframe(savings, striped=True, bordered=True, hover=True)
 
@@ -46,7 +46,7 @@ navbar = dbc.Navbar(
                 dbc.Row(
                     [
                         dbc.Col(html.Img(src=fluidlytix_logo, height="75px")),
-                        dbc.Col(dbc.NavbarBrand("Fluidlytix Post-Installation Report", className="ml-2", style={"color":"#FFFFFF"})),
+                        dbc.Col(dbc.NavbarBrand("Post-Installation Report", className="ml-2", style={"color":"#FFFFFF"})),
                     ],
                     align="center",
                     )
@@ -66,7 +66,7 @@ navbar2 = dbc.Navbar(
                 dbc.Row(
                     [
                         dbc.Col(html.Img(src=pws_logo, height="75px")),
-                        dbc.Col(dbc.NavbarBrand("Pristine World Solutions: Fluidlytix Channel Partner", className="ml-2", style={"color":"#FFFFFF"})),
+                        dbc.Col(dbc.NavbarBrand("Pristine World Solutions: Channel Partner", className="ml-2", style={"color":"#FFFFFF"})),
                         ], align="center"),
                 ]
                 ),
@@ -81,8 +81,7 @@ tab1_content = dbc.Card(
     dbc.CardBody(
         [
             dcc.Markdown('''
-                        **Key Results:**\n
-                         _On average, post-install total water usage & gallons per car **decreased**, despite an increase in total cars washed._\n
+                        **Key Result:**_On average, post-install total water usage & gallons per car **decreased**, despite an increase in total cars washed._\n
                          **Test Period Start:** April 7, 2022\n
                          **Test Period End:** May 5, 2022\n
                          
@@ -113,7 +112,6 @@ days_card=dbc.Card(
                 )
             ]
         ),
-        dbc.CardFooter("↓ 4 (31)", className="card-footer"),
     ],
      className="card border-success mt-3",
 )
@@ -156,7 +154,7 @@ usage_card=dbc.Card(
 
 gal_car_card=dbc.Card(
     [
-        dbc.CardHeader("Gal/Car", className="card-header"),
+        dbc.CardHeader("Gallons/Car", className="card-header"),
         dbc.CardBody(
             [
                 dcc.Markdown(
@@ -193,7 +191,7 @@ app.layout = html.Div([
                                 dbc.Col(gal_car_card, width = 3)
                                 ]),
                             dbc.Row([
-                                html.H4('Cash Flow Schedules', className='mt-4 mb-4'),
+                                html.H4('Cash Flow Analytics', className='mt-4 mb-4'),
                                 html.Hr(),
                                 dbc.Col(table, width=12),
                                 dcc.Graph(id='cash-flows', figure= graph)
