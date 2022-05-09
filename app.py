@@ -14,7 +14,7 @@ cash_flow_5500 = pd.read_sql('SELECT * FROM cash_flow', engine)
 savings = pd.read_sql("SELECT * FROM savings WHERE cost = '$5,500.00'", engine)
 
 app = Dash(__name__, external_stylesheets=external_stylesheets)
-
+server = app.server
 
 
 savings = savings.rename(columns={"bill_annual": "Annual Water Bill", 
