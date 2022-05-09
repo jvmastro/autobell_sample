@@ -9,9 +9,9 @@ external_stylesheets = [dbc.themes.COSMO]
 app = Dash(__name__, external_stylesheets=external_stylesheets)
 server = app.server
 
-with open('https://raw.githubusercontent.com/jvmastro/autobell_sample/main/assets/data/projections_autobell%20copy.csv?token=GHSAT0AAAAAABT5OWKCT2XSMOLLQJ44WS2IYTYXYJA', 'rb') as f1:
+with open('https://raw.githubusercontent.com/jvmastro/autobell_sample/main/assets/data/projections_autobell%20copy.csv', 'rb') as f1:
     projections = pd.read_csv(f1)
-with open('https://raw.githubusercontent.com/jvmastro/autobell_sample/main/assets/data/irr_autobell.csv?token=GHSAT0AAAAAABT5OWKC36JUYXFMNENPAEX2YTYXXIA', 'rb') as f2:
+with open('https://raw.githubusercontent.com/jvmastro/autobell_sample/main/assets/data/irr_autobell.csv', 'rb') as f2:
     irr = pd.read_csv(f2)
     
 projections_55k=projections[projections['cost']=='$5,500.00']
