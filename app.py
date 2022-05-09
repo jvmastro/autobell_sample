@@ -81,7 +81,7 @@ tab1_content = dbc.Card(
     dbc.CardBody(
         [
             dcc.Markdown('''
-                        **Key Result:**_On average, post-install total water usage & gallons per car **decreased**, despite an increase in total cars washed._\n
+                        **Key Result:** _On average, post-install total water usage & gallons per car **decreased**, despite an increase in total cars washed._\n
                          **Test Period Start:** April 7, 2022\n
                          **Test Period End:** May 5, 2022\n
                          
