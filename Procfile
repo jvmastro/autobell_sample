@@ -1,1 +1,1 @@
-web: gunicorn app:serverpipenv lock -r > requirements.txt
+web: gunicorn index:server
