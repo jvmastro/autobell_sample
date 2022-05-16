@@ -1,30 +1,28 @@
-from cgi import test
 from datetime import datetime
 import logging
 import pandas as pd
-from pyparsing import col
+import numpy as np
 
 
 class AutoBellTranformations:
     
+    
     def __init__(self, car_wash_data,
-                 test_period_start_date: str,
-                 test_period_end_date: str,
+                 test_period_start_period: str,
+                 test_period_end_period: str,
                  test_period_start_meter_cubic: int,
                  test_period_end_meter_cubic: int,
                  test_period_cars: int, 
                  conversion_factor = None):
-        self._logger = logging.getLogger(__name__)
+        self._logger = logging.getLogger('AutoBellETL')
         self.car_wash_data = car_wash_data
-        self.test_period_start_date = datetime.strptime(test_period_start_date, '%m/%d/%y').strftime('%m/%d/%y')
-        self.test_period_end_date = datetime.strptime(test_period_end_date, '%m/%d/%y').strftime('%m/%d/%y')
+        self.test_period_start_period = datetime.strptime(test_period_start_period, '%m/%d/%Y').strftime('%Y-%m-%d')
+        self.test_period_end_period = datetime.strptime(test_period_end_period, '%m/%d/%Y').strftime('%Y-%m-%d')
         self.test_period_start_meter_cubic = test_period_start_meter_cubic
         self.test_period_end_meter_cubic = test_period_end_meter_cubic
         self.test_period_cars = test_period_cars
         self.conversion_factor = conversion_factor
 
-
-    
     def extract(self):
         
         with open(self.car_wash_data, 'r') as file:
@@ -36,59 +34,59 @@ class AutoBellTranformations:
     def transform(self, car_wash_data_df: pd.DataFrame):
         
         #Check if test period data has been captured
-        car_wash_data_df = self._test_period_data_check(car_wash_data_df, self.test_period_start_date, 
-                                                        self.test_period_end_date, self.test_period_start_meter_cubic, 
+        car_wash_data_df = self._test_period_data_check(car_wash_data_df, self.test_period_start_period, 
+                                                        self.test_period_end_period, self.test_period_start_meter_cubic, 
                                                         self.test_period_end_meter_cubic, self.test_period_cars)
-        
 
         # Calculate days
-        car_wash_data_df['days'] = (car_wash_data_df['start_date'] - car_wash_data_df['end_date']).days
+        car_wash_data_df['days'] = (car_wash_data_df['end_period'] - car_wash_data_df['start_period']).dt.days
         
         # Calculate Consumption in Cubic Feet
-        car_wash_data_df['consumption_cubic'] = car_wash_data_df['start_meter_cubic'] - car_wash_data_df['end_meter_cubic']
+        car_wash_data_df['consumption_cubic'] = car_wash_data_df['end_meter_cubic'] - car_wash_data_df['start_meter_cubic']
         
         # Calculate meter reads in gallons
         car_wash_data_df['start_meter_gal'] = round(car_wash_data_df['start_meter_cubic'] * self.conversion_factor, 2)
         car_wash_data_df['end_meter_gal'] = round(car_wash_data_df['end_meter_cubic'] * self.conversion_factor, 2)
         
         # Calculate Water Consumption in Gallons
-        car_wash_data_df['consumption_gal'] = round(car_wash_data_df['consumption_cubic'] * self.conversion_factor,2)
+        car_wash_data_df['consumption_gal'] = round((car_wash_data_df['end_meter_gal'] - car_wash_data_df['start_meter_gal']), 2)
         
         # Calculate Water Consumption in Gallons
         car_wash_data_df['gallons_car'] = round(car_wash_data_df['consumption_gal'] / car_wash_data_df['cars'],2)
         
         #Create Test Period DF
-        test_period_df = car_wash_data_df[(car_wash_data_df['start_date'] == self.test_period_start_date) & (car_wash_data_df['end_date']==self.test_period_end_date)]
+        test_period_df = car_wash_data_df[(car_wash_data_df['start_period'] == self.test_period_start_period) & (car_wash_data_df['end_period']==self.test_period_end_period)].reset_index(drop=True)
     
         
         #Create Pre-Install Period DF
-        pre_install_df = car_wash_data_df[(car_wash_data_df['start_date'] < self.test_period_start_date) & (car_wash_data_df['end_date'] < self.test_period_end_date)]
+        pre_install_df = car_wash_data_df[(car_wash_data_df['start_period'] < self.test_period_start_period) & (car_wash_data_df['end_period'] < self.test_period_end_period)].reset_index(drop=True)
+        
         pre_install_days_mean = pre_install_df['days'].mean()
-        pre_install_consumption_gal_mean = pre_install_df['consumption_gal'].mean()
-        pre_install_cars_mean = pre_install_df['cars'].mean()
-        pre_install_gallons_car_mean = pre_install_df['gallons_car'].mean()
+        pre_install_consumption_gal_mean = round(pre_install_df['consumption_gal'].mean(),2)
+        pre_install_cars_mean = round(pre_install_df['cars'].mean(),2)
+        pre_install_gallons_car_mean = round(pre_install_df['gallons_car'].mean(),2)
         
         # Calculate Post-Install Comparison Stats
+        cars_serviced_diff =  test_period_df['cars'] - pre_install_cars_mean
+        cars_serviced_diff_percentage = round((cars_serviced_diff / pre_install_cars_mean) * 100, 2)
         
-        cars_serviced_diff = pre_install_cars_mean - test_period_df['cars']
-        cars_serviced_diff_percentage = (cars_serviced_diff/pre_install_cars_mean) * 100
+        consumption_diff =  test_period_df['consumption_gal'] - pre_install_consumption_gal_mean 
+        consumption_diff_percentage = round((consumption_diff / pre_install_consumption_gal_mean) * 100, 2)
         
-        consumption_diff =  pre_install_consumption_gal_mean - test_period_df['consumption_gal']
-        consumption_diff_percentage = (consumption_diff / pre_install_consumption_gal_mean) * 100
+        gallons_car_diff = test_period_df['gallons_car'] - pre_install_gallons_car_mean
+        gallons_car_diff_percentage = round((gallons_car_diff / pre_install_gallons_car_mean) * 100,2)
         
-        gallons_car_diff =  pre_install_gallons_car_mean - test_period_df['gallons_car']
-        gallons_car_diff_percentage = (gallons_car_diff / pre_install_gallons_car_mean) * 100
         
-        columns = ['Test Period Days',
-                   'Cars (Pre-Install)', 'Cars (Test Period)', 'Difference',
-                   'Consumption (Pre-Install)', 'Consumption (Test Period)','Difference',
-                   'Gallons/Car (Pre-Install)', 'Gallons/Car (Test Period)','Difference']
-        
-        comparison_df = pd.DataFrame([test_period_df['days'],
-                                      pre_install_cars_mean, test_period_df['cars'], cars_serviced_diff_percentage,
-                                      pre_install_consumption_gal_mean, test_period_df['consumption_gal'], gallons_car_diff_percentage,
-                                      pre_install_gallons_car_mean, test_period_df['gallons_car'], gallons_car_diff_percentage],
-                                     columns = columns)
+        comparison_df = pd.DataFrame({'Test Period Days': test_period_df['days'],
+                                      'Cars (Pre-Install)': pre_install_cars_mean,
+                                      'Cars (Test Period)': test_period_df['cars'],
+                                      'Percentage Difference (Cars)': cars_serviced_diff_percentage,
+                                      'Consumption (Pre-Install)': pre_install_consumption_gal_mean,
+                                      'Consumption (Test Period)': test_period_df['consumption_gal'],
+                                      'Percentage Difference (Consumption)': consumption_diff_percentage,
+                                      'Gallons/Car (Pre-Install)':pre_install_gallons_car_mean,
+                                      'Gallons/Car (Test Period)': test_period_df['gallons_car'],
+                                      'Percentage Difference (Gallons/Car)': gallons_car_diff_percentage})
         
         return test_period_df, pre_install_df, comparison_df
     
@@ -97,53 +95,58 @@ class AutoBellTranformations:
         
         
     def _test_period_data_check(self, car_wash_data_df,
-                                test_period_start_date: str,
-                                test_period_end_date: str,
+                                test_period_start_period: str,
+                                test_period_end_period: str,
                                 test_period_start_meter_cubic: int,
                                 test_period_end_meter_cubic: int,
                                 test_period_cars: int):
         
         #Check dataframe for occurance of test data
         test_period_date_check = car_wash_data_df[
-            (car_wash_data_df['start_date'] == test_period_start_date) & 
-            (car_wash_data_df['end_date'] == test_period_end_date)
+            (car_wash_data_df['start_period'] == test_period_start_period) & 
+            (car_wash_data_df['end_period'] == test_period_end_period)
             ]
         #Add data if it does not exist
         if test_period_date_check.empty:
-            test_period_data_df= pd.DataFrame([test_period_start_date,test_period_end_date, test_period_start_meter_cubic, test_period_end_meter_cubic, test_period_cars], columns=car_wash_data_df.columns.to_list())
+            self._logger.info('Test Period data is not included in the dataframe...')
+            test_period_data_df= pd.DataFrame(np.array([[test_period_start_period, test_period_end_period,
+                                               test_period_start_meter_cubic, test_period_end_meter_cubic,
+                                               test_period_cars]]), columns=['start_period','end_period', 'start_meter_cubic', 'end_meter_cubic','cars'])
+            test_period_data_df['start_period']=pd.to_datetime(test_period_data_df.start_period)
+            test_period_data_df['end_period']=pd.to_datetime(test_period_data_df.end_period)
+            test_period_data_df['start_meter_cubic']=test_period_data_df['start_meter_cubic'].astype('float64')
+            test_period_data_df['end_meter_cubic']=test_period_data_df['end_meter_cubic'].astype('float64')
+            test_period_data_df['cars']=test_period_data_df['cars'].astype('float64')
             car_wash_data_df = pd.concat([car_wash_data_df, test_period_data_df], ignore_index=True)
             return car_wash_data_df
         else:
+            self._logger.info('Test Period data is included in the dataframe...')
             return car_wash_data_df
         
         
     def _savings_breakeven_report(self, annual_water_cost, savings_rate, fluidlytix_cost):
-        annual_savings = annual_water_cost * savings_rate
+        annual_savings = annual_water_cost * (savings_rate/ 100)
         monthly_savings = round(annual_savings / 12, 2)
         savings_ten_year = round(annual_savings * 10, 2)
         breakeven_point_months = round(fluidlytix_cost / monthly_savings, 2)
-        
-        columns = ['Annual Water Bill','Savings Rate','Montly Savings','Annual Savings','10-Year Savings','Breakeven Point (Months)','Water Savings Solution']
-        
-        savings_breakeven_df = pd.DataFrame([annual_savings, savings_rate, monthly_savings, 
-                                                annual_savings, savings_ten_year, breakeven_point_months, fluidlytix_cost],
-                                            columns=columns)
+
+        savings_breakeven_df = pd.DataFrame({'Annual Water Bill': annual_water_cost,
+                                      'Savings Rate': savings_rate,
+                                      'Montly Savings': monthly_savings,
+                                      'Annual Savings': annual_savings,
+                                      '10-Year Savings': savings_ten_year,
+                                      'Breakeven Point (Months)': breakeven_point_months,
+                                      'Water Savings Solution': fluidlytix_cost})
         
         return savings_breakeven_df
     
-    def _cash_flow_report(self, n, fluidlytix_cost, annual_savings):
+    def _cash_flow_sequence(self,n, fluidlytix_cost, annual_savings):
         
         cost = -abs(fluidlytix_cost)
         
         if n == 0:
             return cost
         else:
-            return cost + (n * annual_savings)
-        
-
+            return round(cost + (n * annual_savings),2)
         
         
-    
-    
-    
-    
