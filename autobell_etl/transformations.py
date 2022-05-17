@@ -101,6 +101,28 @@ class ComparisonReportConfigs(NamedTuple):
     pre_install_gallons_car_col: str
     test_period_gallons_car_col: str
     percent_diff_gallons_car_col: str
+
+class SavingsBreakevenReportConfigs(NamedTuple):
+    """Class for savings + breakeven report configs
+
+    Params:
+        annual_water_bill_col (str): column name for annual water bill
+        savings_rate_col (str): column name for savings rate
+        monthly_savings_col (str): column name for monthly savings
+        annual_savings_col (str): column name for annual savings
+        ten_year_savings_col (str): column name for 10 year savings
+        reakeven_point_col (str): column name for breakeven point in months
+        fluidlytix_cost_col (str): column name for fluidlytix project cost 
+
+    """
+    annual_water_bill_col: str
+    savings_rate_col: str
+    monthly_savings_col: str
+    annual_savings_col: str
+    ten_year_savings_col: str
+    reakeven_point_col: str
+    fluidlytix_cost_col: str
+
         
     
 
