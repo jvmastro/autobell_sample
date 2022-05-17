@@ -5,38 +5,68 @@ import numpy as np
 
 from typing import NamedTuple
 
+class TargetConfigs(NamedTuple):
+    """
+    Class for target (all months) data configs
+    
+    Params:
+        
+        trg_start_date_col (str): start date column name for target dataframe
+        trg_end_date_col (str): end date column name for target  dataframe
+        trg_start_meter_cubic_col (str): start cubic meter column name for target  dataframe
+        trg_end_meter_cubic_col (str): end cubic meter column name for target  dataframe
+        trg_cars_col (str): cars column name for target  dataframe
+        trg_prelim_cols (list): list of columns names to build base target dataframe
+        trg_days_col (str): days column name for target  dataframe
+        trg_consumption_cubic_col (str): consumption cubic meter column name for target  dataframe
+        trg_start_meter_gallon_col (str): start gallons meter column name for target  dataframe
+        trg_end_meter_gallon_col (str): end gallons meter column name for target  dataframe
+        trg_gallons_car_col (str): gallons per car column name for target  dataframe
+        trg_conversion_factor (float): conversion factor for cubic meters to gallons provided by client
+        trg_pre_install_annual_water_expense (float): annual water bill as determined during contracting
+        trg_contract_savings_rate (float): pre-determined savings rate the contract was built upon
+        trg_primary_fluidlytix_cost (float): primary price of fluidlytix project detailed in contrac
+        trg_secondary_fluidlytix_cost (float): secondary fluidlytix cost if detailed in contract - can be None
+    """
+    
+    trg_start_date_col: str
+    trg_end_date_col: str
+    trg_start_meter_cubic_col: str
+    trg_end_meter_cubic_col: str
+    trg_cars_col: str
+    trg_prelim_cols: list
+    trg_days_col: str
+    trg_consumption_cubic_col: str
+    trg_start_meter_gallon_col: str
+    trg_end_meter_gallon_col: str
+    trg_gallons_car_col: str
+    trg_conversion_factor: float 
+    trg_pre_install_annual_water_expense: float
+    trg_contract_savings_rate: float
+    trg_primary_fluidlytix_cost: float
+    trg_secondary_fluidlytix_cost: float 
+
 class TestPeriodConfigs(NamedTuple):
     """
     Class for test period reporting configs
+    
     Params:
         test_period_start_date (str): start date of test period
         test_period_end_date (str): end date of test period
         test_period_start_meter_cubic (float): meter read at start of test period in cubic meters
         test_period_end_meter_cubic (float): meter read at end of test period in cubic meters
         test_period_cars (float): total number of cars 
-        test_period_df_columns (list): column names for test period dataframe
-        test_period_start_date_col (str): column name for test period start date
-        test_period_end_date_col (str): column name for test period end date
-        test_period_start_meter_cubic_col (str): column name for test period starting cubic meter read
-        test_period_end_meter_cubic_col (str): column name for test period ending cubic meter read
-        test_period_cars_col (str): column name for test period cars serviced
-        
     """
     test_period_start_date: str
     test_period_end_date: str
     test_period_start_meter_cubic: float
     test_period_end_meter_cubic: float
     test_period_cars: float
-    test_period_df_columns: list
-    test_period_start_date_col: str
-    test_period_end_date_col: str
-    test_period_start_meter_cubic_col: str
-    test_period_end_meter_cubic_col: str
-    test_period_cars_col: str
 
 
 
-class AutoBellTranformations:
+
+class AutoBellETL:
     
     
     def __init__(self, car_wash_data,
