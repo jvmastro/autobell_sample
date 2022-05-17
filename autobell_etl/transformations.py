@@ -123,7 +123,34 @@ class SavingsBreakevenReportConfigs(NamedTuple):
     reakeven_point_col: str
     fluidlytix_cost_col: str
 
-        
+class CashFlowReportConfigs(NamedTuple):
+    """Class for cash flow report configs
+
+    Params:
+        project_install_col (str): column name for project install
+        year_1_col (str): column name for year 1
+        year_2_col (str): column name for year 2
+        year_3_col (str): column name for year 3
+        year_4_col (str): column name for year 4
+        year_5_col (str): column name for year 5
+        year_6_col (str): column name for year 6
+        year_7_col (str): column name for year 7
+        year_8_col (str): column name for year 8
+        year_9_col (str): column name for year 9
+        year_10_col (str): column name for year 10
+
+    """
+    project_install_col: str
+    year_1_col: str
+    year_2_col: str
+    year_3_col: str
+    year_4_col: str
+    year_5_col: str
+    year_6_col: str
+    year_7_col: str
+    year_8_col: str
+    year_9_col: str
+    year_10_col: str
     
 
 class AutoBellETL:
