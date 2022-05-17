@@ -5,9 +5,9 @@ import numpy as np
 
 from typing import NamedTuple
 
-class TargetConfigs(NamedTuple):
+class CommonTargetConfigs(NamedTuple):
     """
-    Class for target (all months) data configs
+    Class for common configs shared between target dataframs/reports
     
     Params:
         
@@ -64,7 +64,19 @@ class TestPeriodConfigs(NamedTuple):
     test_period_cars: float
 
 
+class DateFormatConfigs(NamedTuple):
+    """Class for formating configs
 
+    Params:
+        src_date_format (str): format of source dates
+        trg_date_format (str): format for target dataframes/reports
+
+    """
+    src_date_format: str
+    trg_date_format: str
+    
+        
+    
 
 class AutoBellETL:
     
