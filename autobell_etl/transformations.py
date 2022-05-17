@@ -75,6 +75,32 @@ class DateFormatConfigs(NamedTuple):
     src_date_format: str
     trg_date_format: str
     
+class ComparisonReportConfigs(NamedTuple):
+    """Class for comaprison report configs
+
+    Params:
+        test_period_days_col (str): column name for test period days
+        pre_install_cars_col (str): column name for pre-install mean cars
+        test_period_cars_col (str): column name for test period cars
+        percent_diff_cars_col (str): column name for percentage difference cars
+        pre_install_consumption_col (str): column name for pre-install mean consumption
+        test_period_consumption_col (str): column name for test period consumption
+        percent_diff_consumption_col (str): column name for percentage difference consumption
+        pre_install_gallons_car_col (str): column name for pre-install mean gallons per car
+        test_period_gallons_car_col (str): column name for test period gallons per car
+        percent_diff_gallons_car_col (str): column name for percentage difference gallons per car
+
+    """
+    test_period_days_col: str
+    pre_install_cars_col: str
+    test_period_cars_col: str
+    percent_diff_cars_col: str
+    pre_install_consumption_col: str
+    test_period_consumption_col: str
+    percent_diff_consumption_col: str
+    pre_install_gallons_car_col: str
+    test_period_gallons_car_col: str
+    percent_diff_gallons_car_col: str
         
     
 
