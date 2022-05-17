@@ -3,6 +3,38 @@ import logging
 import pandas as pd
 import numpy as np
 
+from typing import NamedTuple
+
+class TestPeriodConfigs(NamedTuple):
+    """
+    Class for test period reporting configs
+    Params:
+        test_period_start_date (str): start date of test period
+        test_period_end_date (str): end date of test period
+        test_period_start_meter_cubic (float): meter read at start of test period in cubic meters
+        test_period_end_meter_cubic (float): meter read at end of test period in cubic meters
+        test_period_cars (float): total number of cars 
+        test_period_df_columns (list): column names for test period dataframe
+        test_period_start_date_col (str): column name for test period start date
+        test_period_end_date_col (str): column name for test period end date
+        test_period_start_meter_cubic_col (str): column name for test period starting cubic meter read
+        test_period_end_meter_cubic_col (str): column name for test period ending cubic meter read
+        test_period_cars_col (str): column name for test period cars serviced
+        
+    """
+    test_period_start_date: str
+    test_period_end_date: str
+    test_period_start_meter_cubic: float
+    test_period_end_meter_cubic: float
+    test_period_cars: float
+    test_period_df_columns: list
+    test_period_start_date_col: str
+    test_period_end_date_col: str
+    test_period_start_meter_cubic_col: str
+    test_period_end_meter_cubic_col: str
+    test_period_cars_col: str
+
+
 
 class AutoBellTranformations:
     
@@ -54,7 +86,7 @@ class AutoBellTranformations:
         # Calculate Water Consumption in Gallons
         car_wash_data_df['gallons_car'] = round(car_wash_data_df['consumption_gal'] / car_wash_data_df['cars'],2)
         
-        #Create Test Period DF
+        #Create Test Period data
         test_period_df = car_wash_data_df[(car_wash_data_df['start_period'] == self.test_period_start_period) & (car_wash_data_df['end_period']==self.test_period_end_period)].reset_index(drop=True)
     
         
@@ -76,7 +108,7 @@ class AutoBellTranformations:
         gallons_car_diff = test_period_df['gallons_car'] - pre_install_gallons_car_mean
         gallons_car_diff_percentage = round((gallons_car_diff / pre_install_gallons_car_mean) * 100,2)
         
-        
+        # Create comaprison dataframe
         comparison_df = pd.DataFrame({'Test Period Days': test_period_df['days'],
                                       'Cars (Pre-Install)': pre_install_cars_mean,
                                       'Cars (Test Period)': test_period_df['cars'],
@@ -84,9 +116,25 @@ class AutoBellTranformations:
                                       'Consumption (Pre-Install)': pre_install_consumption_gal_mean,
                                       'Consumption (Test Period)': test_period_df['consumption_gal'],
                                       'Percentage Difference (Consumption)': consumption_diff_percentage,
-                                      'Gallons/Car (Pre-Install)':pre_install_gallons_car_mean,
+                                      'Gallons/Car (Pre-Install)': pre_install_gallons_car_mean,
                                       'Gallons/Car (Test Period)': test_period_df['gallons_car'],
                                       'Percentage Difference (Gallons/Car)': gallons_car_diff_percentage})
+        
+        # Create savings + breakeven report
+        annual_savings = annual_water_cost * (savings_rate/ 100)
+        monthly_savings = round(annual_savings / 12, 2)
+        savings_ten_year = round(annual_savings * 10, 2)
+        breakeven_point_months = round(fluidlytix_cost / monthly_savings, 2)
+
+        savings_breakeven_df = pd.DataFrame({'Annual Water Bill': annual_water_cost,
+                                      'Savings Rate': savings_rate,
+                                      'Montly Savings': monthly_savings,
+                                      'Annual Savings': annual_savings,
+                                      '10-Year Savings': savings_ten_year,
+                                      'Breakeven Point (Months)': breakeven_point_months,
+                                      'Water Savings Solution': fluidlytix_cost})
+        
+        
         
         return test_period_df, pre_install_df, comparison_df
     
@@ -149,4 +197,8 @@ class AutoBellTranformations:
         else:
             return round(cost + (n * annual_savings),2)
         
-        
+import subprocess
+result = subprocess.run(["heroku", "config:get","DATABASE_URL"], stdout=subprocess.PIPE)
+result = result.stdout.decode('utf-8')
+result = str.replace(result, 'postgres','postgresql')
+print(result)
