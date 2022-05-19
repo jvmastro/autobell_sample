@@ -1,9 +1,11 @@
-from datetime import datetime
+from datetime import datetime, date
 import logging
 import pandas as pd
 import numpy as np
 
 from typing import NamedTuple
+from etl.db_conn import HerokuDBConnection
+
 
 class CommonTargetConfigs(NamedTuple):
     """
@@ -81,6 +83,7 @@ class ComparisonReportConfigs(NamedTuple):
     """Class for comaprison report configs
 
     Params:
+        report_date_col (str): column naem for report date 
         test_period_days_col (str): column name for test period days
         pre_install_cars_col (str): column name for pre-install mean cars
         test_period_cars_col (str): column name for test period cars
@@ -93,6 +96,7 @@ class ComparisonReportConfigs(NamedTuple):
         percent_diff_gallons_car_col (str): column name for percentage difference gallons per car
 
     """
+    report_date_col: str
     test_period_days_col: str 
     pre_install_cars_col: str 
     test_period_cars_col: str 
@@ -108,6 +112,7 @@ class SavingsBreakevenReportConfigs(NamedTuple):
     """Class for savings + breakeven report configs
 
     Params:
+        report_date_col (str): column naem for report date 
         annual_water_bill_col (str): column name for annual water bill
         savings_rate_col (str): column name for savings rate
         monthly_savings_col (str): column name for monthly savings
@@ -117,6 +122,7 @@ class SavingsBreakevenReportConfigs(NamedTuple):
         fluidlytix_cost_col (str): column name for fluidlytix project cost 
 
     """
+    report_date_col: str
     annual_water_bill_col: str 
     savings_rate_col: str 
     monthly_savings_col: str 
@@ -129,18 +135,19 @@ class CashFlowReportConfigs(NamedTuple):
     """Class for cash flow report configs
 
     Params:
+        report_date_col (str): column naem for report date 
         year_col (str): column  name for year
         cash_flow_col (str): column name for cash flow
         year_col_values (list): list of values for year col
 
     """
+    report_date_col: str
     year_col: str 
     cash_flow_col: str 
     year_col_values: list 
     
 
 class AutoBellETL:
-    
     
     def __init__(self,
                  common_trg_configs: CommonTargetConfigs,
@@ -156,6 +163,7 @@ class AutoBellETL:
         self.comparison_report_configs = comparison_report_configs
         self.savings_bep_configs = savings_bep_configs
         self.cash_flow_configs = cash_flow_configs
+
 
     def extract(self):
         
@@ -218,10 +226,10 @@ class AutoBellETL:
         
         # Calculate Post-Install Comparison Stats
         cars_serviced_diff =  test_period_report[self.common_trg_configs.trg_cars_col][0] - pre_install_cars_mean
-        cars_serviced_diff_percentage = round((cars_serviced_diff / pre_install_cars_mean) * 10.000, 2)
+        #cars_serviced_diff_percentage = round((cars_serviced_diff / pre_install_cars_mean) * 10.000, 2)
         
         consumption_diff =  test_period_report[self.common_trg_configs.trg_consumption_gallon_col][0] - pre_install_consumption_gal_mean 
-        consumption_diff_percentage = round((consumption_diff / pre_install_consumption_gal_mean) * 100.00, 2)
+        #consumption_diff_percentage = round((consumption_diff / pre_install_consumption_gal_mean) * 100.00, 2)
         
         gallons_car_diff = test_period_report[self.common_trg_configs.trg_gallons_car_col][0] - pre_install_gallons_car_mean
         gallons_car_diff_percentage = round((gallons_car_diff / pre_install_gallons_car_mean) * 100.00,2)
@@ -230,13 +238,14 @@ class AutoBellETL:
         # Create comaprison dataframe
         comparison_report = pd.DataFrame(
             {
+                self.comparison_report_configs.report_date_col: date.today(),
                 self.comparison_report_configs.test_period_days_col: test_period_report[self.common_trg_configs.trg_days_col],
                 self.comparison_report_configs.pre_install_cars_col: pre_install_cars_mean,
                 self.comparison_report_configs.test_period_cars_col: test_period_report[self.common_trg_configs.trg_cars_col],
-                self.comparison_report_configs.percent_diff_cars_col: cars_serviced_diff_percentage,
+                self.comparison_report_configs.percent_diff_cars_col: cars_serviced_diff,
                 self.comparison_report_configs.pre_install_consumption_col: pre_install_consumption_gal_mean,
                 self.comparison_report_configs.test_period_consumption_col: test_period_report[self.common_trg_configs.trg_consumption_gallon_col],
-                self.comparison_report_configs.percent_diff_consumption_col: consumption_diff_percentage,
+                self.comparison_report_configs.percent_diff_consumption_col: consumption_diff,
                 self.comparison_report_configs.pre_install_gallons_car_col: pre_install_gallons_car_mean,
                 self.comparison_report_configs.test_period_gallons_car_col: test_period_report[self.common_trg_configs.trg_gallons_car_col],
                 self.comparison_report_configs.percent_diff_gallons_car_col: gallons_car_diff_percentage})
@@ -258,9 +267,9 @@ class AutoBellETL:
                                                                   self.common_trg_configs.trg_contract_savings_rate,
                                                                   self.common_trg_configs.trg_primary_fluidlytix_cost) for i in range(0,11)]
         
-        cash_flow_report_data_contract_rate = [[cash_flow_year_col_vals_contract_rate[i], cash_flow_inflow_values_contract_rate[i]] for i in range(0,11)]
+        cash_flow_report_data_contract_rate = [[date.today(),cash_flow_year_col_vals_contract_rate[i], cash_flow_inflow_values_contract_rate[i]] for i in range(0,11)]
         cash_flow_report_contract_rate = pd.DataFrame(data=cash_flow_report_data_contract_rate,
-                                                      columns = [self.cash_flow_configs.year_col, self.cash_flow_configs.cash_flow_col])
+                                                      columns = [self.cash_flow_configs.report_date_col,self.cash_flow_configs.year_col, self.cash_flow_configs.cash_flow_col])
         
         cash_flow_year_col_vals_test_rate = self.cash_flow_configs.year_col_values
         cash_flow_inflow_values_test_rate = [self._cash_flow_sequence(i,
@@ -269,9 +278,9 @@ class AutoBellETL:
                                                                   self.common_trg_configs.trg_primary_fluidlytix_cost
                                                                   ) for i in range(0,11)]
         
-        cash_flow_report_data_test_rate = [[cash_flow_year_col_vals_test_rate[i], cash_flow_inflow_values_test_rate[i]] for i in range(0,11)]
+        cash_flow_report_data_test_rate = [[date.today(), cash_flow_year_col_vals_test_rate[i], cash_flow_inflow_values_test_rate[i]] for i in range(0,11)]
         cash_flow_report_test_rate = pd.DataFrame(data=cash_flow_report_data_test_rate,
-                                                      columns = [self.cash_flow_configs.year_col, self.cash_flow_configs.cash_flow_col])
+                                                      columns = [self.cash_flow_configs.report_date_col,self.cash_flow_configs.year_col, self.cash_flow_configs.cash_flow_col])
 
         
         # Create additonal savings + bep report & cash flow report if secondary cost
@@ -286,25 +295,45 @@ class AutoBellETL:
                                                                           abs(gallons_car_diff_percentage),
                                                                           self.common_trg_configs.trg_secondary_fluidlytix_cost) for i in range(0,11)]
         
-            cash_flow_report_data_secondary_cost = [[cash_flow_year_col_vals_secondary_cost[i], cash_flow_inflow_values_secondary_cost[i]] for i in range(0,11)]
+            cash_flow_report_data_secondary_cost = [[date.today(),cash_flow_year_col_vals_secondary_cost[i], cash_flow_inflow_values_secondary_cost[i]] for i in range(0,11)]
             cash_flow_report_secondary_cost = pd.DataFrame(data=cash_flow_report_data_secondary_cost,
-                                                      columns = [self.cash_flow_configs.year_col, self.cash_flow_configs.cash_flow_col])
+                                                      columns = [self.cash_flow_configs.report_date_col,self.cash_flow_configs.year_col, self.cash_flow_configs.cash_flow_col])
             
-            return comparison_report, savings_bep_report_test_rate, savings_bep_report_secondary, cash_flow_report_test_rate, cash_flow_report_secondary_cost
+            return {'comp_report': comparison_report, 'save_bep_test': savings_bep_report_test_rate, 'save_bep_secondary': savings_bep_report_secondary, 'cashflow_report_a': cash_flow_report_test_rate, 'cashflow_report_b': cash_flow_report_secondary_cost}
         else:
-            return comparison_report, savings_bep_report_test_rate, cash_flow_report_test_rate
+            return {'comp_report': comparison_report, 'save_bep_test': savings_bep_report_test_rate, 'cashflow_report_a':cash_flow_report_test_rate} 
             
 
     
-    def load():
-        pass
-    
+    def load(self, comp_report=None, save_bep_test=None, cashflow_report_a=None, save_bep_secondary=None, cashflow_report_b=None):
+        db_connection = HerokuDBConnection()
+        engine = db_connection.engine
+        
+        with engine.begin() as conn:
+            if save_bep_secondary.empty and cashflow_report_b.empty:
+                comp_report.to_sql('comparison_report', conn, if_exists='replace', index=False)
+                save_bep_test.to_sql('savings_bep_report', conn, if_exists='replace', index=False)
+                cashflow_report_a.to_sql('cash_flow_report1', conn, if_exists='replace', index=False)
+                    
+            else:
+                comp_report.to_sql('comparison_report', conn, if_exists='replace', index=False)
+                save_bep_test.to_sql('savings_bep_report', conn, if_exists='replace', index=False)
+                cashflow_report_a.to_sql('cash_flow_report1', conn, if_exists='replace', index=False)
+                save_bep_secondary.to_sql('savings_bep_report', conn, if_exists='append', index=False)
+                cashflow_report_b.to_sql('cash_flow_report1', conn, if_exists='replace', index=False)
+            
+            return True
+            
     def autobell_reports(self):
-        # Extraction
+        # Extraction from csv
         src_car_wash_df = self.extract()
-        # Transformation
-        comparison_report, savings_bep_report_test_rate, savings_bep_report_secondary, cash_flow_report_test_rate, cash_flow_report_secondary_cost = self.transform(src_car_wash_df)
-        # Print
+        # Transformation to get target reports
+        report_df_dict = self.transform(src_car_wash_df)
+        # Load into heroku postgres db
+        self.load(**report_df_dict)
+        
+        return True
+        
 
         
         
@@ -355,6 +384,7 @@ class AutoBellETL:
 
         savings_breakeven_report = pd.DataFrame(
             {
+                self.savings_bep_configs.report_date_col: [date.today()],
                 self.savings_bep_configs.annual_water_bill_col: [annual_water_cost],
                 self.savings_bep_configs.savings_rate_col: [savings_rate],
                 self.savings_bep_configs.monthly_savings_col: [monthly_savings],
@@ -376,6 +406,3 @@ class AutoBellETL:
             return cost
         else:
             return round(cost + (n * annual_savings), 2)
-        
-
-        
