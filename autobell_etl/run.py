@@ -7,6 +7,7 @@ import yaml
 
 from etl.etl_code import AutoBellETL, CommonTargetConfigs, TestPeriodConfigs, DateFormatConfigs, ComparisonReportConfigs, SavingsBreakevenReportConfigs, CashFlowReportConfigs
 
+
 def main():
     """Entry point to run the Autobell ETL job
     """
@@ -35,8 +36,11 @@ def main():
     cash_flow_report_configs = CashFlowReportConfigs(**config['cashflow'])
     # creating XetraETL class instance
     logger.info('AutoBell ETL job started')
-    autobell_etl = AutoBellETL(common_target_configs, test_period_cofigs, date_configs,
-                               comnparioson_report_configs, savings_bep_configs, cash_flow_report_configs )
+    autobell_etl = AutoBellETL(common_target_configs,
+                               test_period_cofigs, date_configs,
+                               comnparioson_report_configs,
+                               savings_bep_configs,
+                               cash_flow_report_configs)
     # running etl job
     autobell_etl.autobell_reports()
     logger.info('Autobell ETL job finished')
