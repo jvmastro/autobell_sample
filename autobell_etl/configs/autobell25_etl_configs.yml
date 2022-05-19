@@ -34,19 +34,21 @@ date:
 
 # Configuration specific to comparison reports
 comparison:
+  report_date_col: 'report_date'
   test_period_days_col: 'test_period_days'
   pre_install_cars_col: 'cars_pre_install'
   test_period_cars_col: 'cars_test_period'
-  percent_diff_cars_col: 'percent_diff_cars'
+  percent_diff_cars_col: 'diff_cars'
   pre_install_consumption_col: 'consumption_pre_install'
   test_period_consumption_col: 'consumption_test_period'
-  percent_diff_consumption_col: 'percent_diff_consumption'
+  percent_diff_consumption_col: 'diff_consumption'
   pre_install_gallons_car_col: 'gallons_car_pre_install'
   test_period_gallons_car_col: 'gallons_car_test_period'
   percent_diff_gallons_car_col: 'percent_diff_gallons_car'
 
 # Configuration specific to savings + breakeven report
 save-bep:
+  report_date_col: 'report_date'
   annual_water_bill_col: 'annual_water_bill'
   savings_rate_col: 'savings_rate'
   monthly_savings_col: 'monthly_savings'
@@ -57,6 +59,7 @@ save-bep:
 
 # Configuration specific to cash flow report
 cashflow:
+  report_date_col: 'report_date'
   year_col: 'year'
   cash_flow_col: 'cash_flow'
   year_col_values: ['project_install', 'year_1', 'year_2', 'year_3', 'year_4', 'year_5', 'year_6', 'year_7', 'year_8', 'year_9', 'year_10']
