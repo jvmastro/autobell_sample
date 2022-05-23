@@ -1,44 +1,111 @@
-from ssl import get_default_verify_paths
-from dash import Dash, html, dcc
+from click import style
+from dash import Dash, html, dcc, dash_table
 
 import dash_bootstrap_components as dbc 
 import plotly.express as px
 import pandas as pd
 
-from sqlalchemy import create_engine
+from autobell_etl.etl.db_conn import HerokuDBConnection
+from functools import lru_cache
+
+
+from sqlalchemy.ext.automap import automap_base
+
+db_connection = HerokuDBConnection()
+session = db_connection.session
+
+Base = automap_base()
+Base.prepare(db_connection.engine, reflect=True)
+
+TestPreInstall = Base.classes.comparison_report
+PaybackDetail = Base.classes.savings_bep_report
+CashFlowDetail = Base.classes.cash_flow_report
+
+
+@lru_cache()
+def get_key_stats(session, mapped_class, result_column_name, comp_column_name=None, diff_column_name=None):
+    with session as s:
+        query = s.query(mapped_class).first()
+        
+        if result_column_name == 'test_period_days':
+            return '{:.0f}'.format(getattr(query, result_column_name))
+        
+        result_stat = '{:,.2f}'.format(getattr(query, result_column_name))
+        comp_stat = '{:,.2f}'.format(getattr(query, comp_column_name))
+        
+        if diff_column_name == 'percent_diff_gallons_car':
+            diff = '{:.2f}%'.format(getattr(query, diff_column_name))
+        else:
+            diff = '{:,.2f}'.format(getattr(query, diff_column_name))
+    return result_stat, comp_stat, diff
+
+
+days = get_key_stats(session, TestPreInstall, 'test_period_days')
+cars_result, cars_comp, cars_diff  = get_key_stats(session, TestPreInstall, 'cars_test_period', 'cars_pre_install', 'diff_cars')
+usage_result, usage_comp, usage_diff  = get_key_stats(session, TestPreInstall, 'consumption_test_period','consumption_pre_install', 'diff_consumption')
+gal_car_result, gal_car_comp, gal_car_diff  = get_key_stats(session, TestPreInstall, 'gallons_car_test_period', 'gallons_car_pre_install', 'percent_diff_gallons_car')
+
+
+def construct_payback_table(session, fluidlytix_cost):
+    with session as s:
+        payback_df = pd.read_sql(f"""
+                                 SELECT annual_water_bill,savings_rate, monthly_savings,annual_savings, savings_10_year,bep_months, fluidlytix_project_cost 
+                                 FROM savings_bep_report WHERE fluidlytix_project_cost = {fluidlytix_cost}
+                                 """, s.connection())
+    payback_df[['annual_water_bill', 'monthly_savings', 'annual_savings', 'savings_10_year', 'fluidlytix_project_cost']] = payback_df[['annual_water_bill', 'monthly_savings', 'annual_savings', 'savings_10_year', 'fluidlytix_project_cost']].applymap('${:,.2f}'.format)
+    payback_df['savings_rate']=payback_df['savings_rate'].map('{:.2f}%'.format)
+    payback_df = payback_df.rename(columns={"annual_water_bill": "Annual Water Bill", 
+                            "savings_rate": "Savings Rate",
+                            "monthly_savings": "Monthly Savings",
+                            "annual_savings": "Annual Savings",
+                            "savings_10_year": "10-Year Savings",
+                            "bep_months": "Breakeven Point (Months)",
+                            "fluidlytix_project_cost": "Water Savings Solution"})
+    payback_table = dbc.Table.from_dataframe(payback_df, striped=True, bordered=True, hover=True, className='mt-4 mb-4')
+    
+    return payback_table
+
+current_payback_table = construct_payback_table(session, 5500.0)
+
+def construct_cash_flow_graph(session, fluidlytix_cost):
+    with session as s:
+        cash_flow_df = pd.read_sql(f"""
+                                 SELECT project_install, year_1, year_2, year_3, year_4, year_5, year_6, year_7, year_8, year_9, year_10
+                                 FROM cash_flow_report WHERE project_install = {fluidlytix_cost}
+                                 """, s.connection())
+        cash_flow_graph = px.bar(cash_flow_df.loc[0], x = cash_flow_df.columns.to_list(), y= cash_flow_df.loc[0])
+        cash_flow_graph.update_layout(
+            xaxis=dict(
+                title = None,
+                tickmode = 'array',
+                tickvals = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+                ticktext = [x.title().replace('_', ' ') for x in cash_flow_df.columns.to_list()],
+                tickangle= 45
+            ),
+            yaxis=dict(
+                title = 'Cash Flow ($)',
+                showticklabels = True,
+                hoverformat = '$,.2f',
+                tickformat = ',.0f'
+        ),
+            margin=dict(l=20, r=20, t=20, b=20)
+    )
+    return cash_flow_graph
+
+current_cash_flow_graph = construct_cash_flow_graph(session, -5500.00)
+        
+        
+
 
 external_stylesheets = [dbc.themes.COSMO]
-engine = create_engine('postgresql://xgzayqdpuwhzqg:ec55eebdf235fa13d20b498f899768edd745db7e2cad6bb64668014987e3334d@ec2-54-158-247-210.compute-1.amazonaws.com:5432/d924dsh401okkp')
-
-cash_flow_5500 = pd.read_sql('SELECT * FROM cash_flow', engine)
-savings = pd.read_sql("SELECT * FROM savings WHERE cost = '$5,500.00'", engine)
-
 app = Dash(__name__, external_stylesheets=external_stylesheets)
 server = app.server
 
 
-savings = savings.rename(columns={"bill_annual": "Annual Water Bill", 
-                            "savings_rate": "Savings Rate",
-                            "savnigs_annual": "Annual Savings",
-                            "savings_10_net": "10-Year Savings",
-                            "savings_monthly": "Monthly Savings",
-                            "bep_months": "Breakeven Point (Months)",
-                            "cost": "Water Savings Solution"})
-    
-table = dbc.Table.from_dataframe(savings, striped=True, bordered=True, hover=True)
-
-graph = px.bar(cash_flow_5500, x='Year', y='Cash Flow', hover_data={'Cash Flow':':,.2f'})
-graph.update_layout(xaxis=dict(tickmode='array',
-                  tickvals= [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-                  ticktext = ['Project Installation', 'Year 1', 'Year 2', 
-                              'Year 3','Year 4', 'Year 5', 
-                              'Year 6', 'Year 7', 'Year 8', 
-                              'Year 9', 'Year 10']
-                  ))
-
 fluidlytix_logo = "https://static.wixstatic.com/media/160184_ad4c1492eb71433cab12f62ad924a4ef~mv2.png/v1/crop/x_0,y_0,w_600,h_499/fill/w_210,h_174,al_c,q_85,usm_0.66_1.00_0.01,enc_auto/FluidLytix-Logo.png"
 pws_logo = "https://pristineworldsolutions.com/wp-content/uploads/2021/03/big-logo.png"
-navbar = dbc.Navbar(
+
+navbar_header = dbc.Navbar(
     dbc.Container(
         [
             html.A(
@@ -58,7 +125,7 @@ navbar = dbc.Navbar(
     className="mb-4",
 )
 
-navbar2 = dbc.Navbar(
+navbar_footer = dbc.Navbar(
     dbc.Container(
         [
             html.A([
@@ -77,7 +144,7 @@ navbar2 = dbc.Navbar(
     className="mb-4",
 )
 
-tab1_content = dbc.Card(
+install_details_tab_content = dbc.Card(
     dbc.CardBody(
         [
             dcc.Markdown('''
@@ -105,8 +172,8 @@ days_card=dbc.Card(
         dbc.CardBody(
             [
                 dcc.Markdown(
-                    '''
-                    ## 27
+                    f'''
+                    ## {days}
                     ''',
                     style={'textAlign': 'center'}
                 )
@@ -122,14 +189,14 @@ cars_card=dbc.Card(
         dbc.CardBody(
             [
                 dcc.Markdown(
-                    '''
-                    ## 11,684
+                    f'''
+                    ## {cars_result}
                     ''',
                     style={'textAlign': 'center'}
                 )
             ]
         ),
-        dbc.CardFooter("↑ 2,331 (9,352)", className="card-footer"),
+        dbc.CardFooter(f"↑ {cars_diff} ({cars_comp})", className="card-footer"),
     ],
      className="card border-success mt-3",
 )
@@ -140,14 +207,14 @@ usage_card=dbc.Card(
         dbc.CardBody(
             [
                 dcc.Markdown(
-                    '''
-                    ## 220,674.75
+                    f'''
+                    ## {usage_result}
                     ''',
                     style={'textAlign': 'center'}
                 )
             ]
         ),
-        dbc.CardFooter("↓ 2,877.12 (223,551.87)", className="card-footer"),
+        dbc.CardFooter(f"↓ {usage_diff} ({usage_comp})", className="card-footer"),
     ],
      className="card border-success mt-3",
 )
@@ -158,25 +225,37 @@ gal_car_card=dbc.Card(
         dbc.CardBody(
             [
                 dcc.Markdown(
-                    '''
-                    ## 18.89
+                    f'''
+                    ## {gal_car_result}
                     ''',
                     style={'textAlign': 'center'})
             ]
         ),
-        dbc.CardFooter("↓ 21.04% (24)", className="card-footer"),
+        dbc.CardFooter(f"↓ {gal_car_diff} ({gal_car_comp})", className="card-footer"),
     ],
      className="card border-success mt-3",
 )
 
+current_payback_tab_content = dbc.Col(
+    [
+        current_payback_table,
+        dbc.Row([
+            dbc.Col([
+                dbc.Alert(" ⓘ Hover over columns to display total cash flow", color="primary")
+                ], width = 6 , align = 'end')
+            ], justify = 'center'),
+        dcc.Graph(figure = current_cash_flow_graph)
+        ]
+    )
+
 app.layout = html.Div([
-    navbar,
+    navbar_header,
     dbc.Container([
         dbc.Row([
             dbc.Col(width=4, children=[
                 dbc.Tabs(
                     [
-                        dbc.Tab(tab1_content, label='Pilot Installation Details'),
+                        dbc.Tab(install_details_tab_content, label='Pilot Installation Details'),
                     ]
                     )
                 ]),
@@ -189,20 +268,20 @@ app.layout = html.Div([
                                 dbc.Col(cars_card, width = 3),
                                 dbc.Col(usage_card, width = 3),
                                 dbc.Col(gal_car_card, width = 3)
-                                ]),
+                                ], className='mb-4'),
                             dbc.Row([
-                                html.H4('Cash Flow Analytics', className='mt-4 mb-4'),
-                                html.Hr(),
-                                dbc.Col(table, width=12),
-                                dcc.Graph(id='cash-flows', figure= graph)
+                                dbc.Tabs(
+                                    [
+                                        dbc.Tab(current_payback_tab_content, label = 'Cash Flow Schedule - Autobell 25')
+                                    ])
                                 ])
-                            ]),
+                            ])
                         ]
                     )
                 ]),
             ])
         ]),
-    navbar2
+    navbar_footer
     ])
                 
 if __name__== '__main__':
