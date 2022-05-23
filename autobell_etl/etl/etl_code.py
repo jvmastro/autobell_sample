@@ -135,16 +135,10 @@ class CashFlowReportConfigs(NamedTuple):
     """Class for cash flow report configs
 
     Params:
-        report_date_col (str): column naem for report date 
-        year_col (str): column  name for year
-        cash_flow_col (str): column name for cash flow
-        year_col_values (list): list of values for year col
+        cashflow_col_list (list): list of values for year col
 
     """
-    report_date_col: str
-    year_col: str 
-    cash_flow_col: str 
-    year_col_values: list 
+    cashflow_col_list: list 
     
 
 class AutoBellETL:
@@ -256,48 +250,29 @@ class AutoBellETL:
                                                                   self.common_trg_configs.trg_primary_fluidlytix_cost) 
         
         
-        savings_bep_report_test_rate = self._savings_breakeven_report(self.common_trg_configs.trg_pre_install_annual_water_expense,
-                                                                  abs(gallons_car_diff_percentage),
-                                                                  self.common_trg_configs.trg_primary_fluidlytix_cost)
+        savings_bep_report_test_rate = self._savings_breakeven_report(self.common_trg_configs.trg_pre_install_annual_water_expense, abs(gallons_car_diff_percentage), self.common_trg_configs.trg_primary_fluidlytix_cost)
         
         # Create 10 year cash flow report for contractual rate & test period rate
-        cash_flow_year_col_vals_contract_rate = self.cash_flow_configs.year_col_values
-        cash_flow_inflow_values_contract_rate = [self._cash_flow_sequence(i,
-                                                                  self.common_trg_configs.trg_pre_install_annual_water_expense,
-                                                                  self.common_trg_configs.trg_contract_savings_rate,
-                                                                  self.common_trg_configs.trg_primary_fluidlytix_cost) for i in range(0,11)]
+        ## Contract Rate Cash Flow Report
+        cash_flow_values_contract_rate = [self._cash_flow_sequence(i, self.common_trg_configs.trg_pre_install_annual_water_expense, self.common_trg_configs.trg_contract_savings_rate, self.common_trg_configs.trg_primary_fluidlytix_cost) for i in range(0,11)]
+        cash_flow_values_contract_rate.insert(0, date.today())
+        cash_flow_report_contract_rate = pd.DataFrame(data=[cash_flow_values_contract_rate], columns = self.cash_flow_configs.cashflow_col_list)
         
-        cash_flow_report_data_contract_rate = [[date.today(),cash_flow_year_col_vals_contract_rate[i], cash_flow_inflow_values_contract_rate[i]] for i in range(0,11)]
-        cash_flow_report_contract_rate = pd.DataFrame(data=cash_flow_report_data_contract_rate,
-                                                      columns = [self.cash_flow_configs.report_date_col,self.cash_flow_configs.year_col, self.cash_flow_configs.cash_flow_col])
+        ## Test Period Rate Cash Flow Report
+        cash_flow_values_test_rate = [self._cash_flow_sequence(i, self.common_trg_configs.trg_pre_install_annual_water_expense, abs(gallons_car_diff_percentage), self.common_trg_configs.trg_primary_fluidlytix_cost) for i in range(0,11)]
         
-        cash_flow_year_col_vals_test_rate = self.cash_flow_configs.year_col_values
-        cash_flow_inflow_values_test_rate = [self._cash_flow_sequence(i,
-                                                                  self.common_trg_configs.trg_pre_install_annual_water_expense,
-                                                                  abs(gallons_car_diff_percentage),
-                                                                  self.common_trg_configs.trg_primary_fluidlytix_cost
-                                                                  ) for i in range(0,11)]
-        
-        cash_flow_report_data_test_rate = [[date.today(), cash_flow_year_col_vals_test_rate[i], cash_flow_inflow_values_test_rate[i]] for i in range(0,11)]
-        cash_flow_report_test_rate = pd.DataFrame(data=cash_flow_report_data_test_rate,
-                                                      columns = [self.cash_flow_configs.report_date_col,self.cash_flow_configs.year_col, self.cash_flow_configs.cash_flow_col])
-
+        cash_flow_values_test_rate.insert(0, date.today())
+        cash_flow_report_test_rate = pd.DataFrame(data = [cash_flow_values_test_rate], columns = self.cash_flow_configs.cashflow_col_list)
         
         # Create additonal savings + bep report & cash flow report if secondary cost
         if self.common_trg_configs.trg_secondary_fluidlytix_cost:
-            savings_bep_report_secondary = self._savings_breakeven_report(self.common_trg_configs.trg_pre_install_annual_water_expense,
-                                                                          abs(gallons_car_diff_percentage),
-                                                                          self.common_trg_configs.trg_secondary_fluidlytix_cost)
+            ## Secondary Savings + BEP Report
+            savings_bep_report_secondary = self._savings_breakeven_report(self.common_trg_configs.trg_pre_install_annual_water_expense, abs(gallons_car_diff_percentage), self.common_trg_configs.trg_secondary_fluidlytix_cost)
             
-            cash_flow_year_col_vals_secondary_cost = self.cash_flow_configs.year_col_values
-            cash_flow_inflow_values_secondary_cost = [self._cash_flow_sequence(i,
-                                                                          self.common_trg_configs.trg_pre_install_annual_water_expense,
-                                                                          abs(gallons_car_diff_percentage),
-                                                                          self.common_trg_configs.trg_secondary_fluidlytix_cost) for i in range(0,11)]
-        
-            cash_flow_report_data_secondary_cost = [[date.today(),cash_flow_year_col_vals_secondary_cost[i], cash_flow_inflow_values_secondary_cost[i]] for i in range(0,11)]
-            cash_flow_report_secondary_cost = pd.DataFrame(data=cash_flow_report_data_secondary_cost,
-                                                      columns = [self.cash_flow_configs.report_date_col,self.cash_flow_configs.year_col, self.cash_flow_configs.cash_flow_col])
+           ## Secondary cash flow report
+            cash_flow_values_secondary_cost = [self._cash_flow_sequence(i, self.common_trg_configs.trg_pre_install_annual_water_expense, abs(gallons_car_diff_percentage), self.common_trg_configs.trg_secondary_fluidlytix_cost) for i in range(0,11)]    
+            cash_flow_values_secondary_cost.insert(0, date.today())
+            cash_flow_report_secondary_cost = pd.DataFrame(data = [cash_flow_values_secondary_cost], columns = self.cash_flow_configs.cashflow_col_list)
             
             return {'comp_report': comparison_report, 'save_bep_test': savings_bep_report_test_rate, 'save_bep_secondary': savings_bep_report_secondary, 'cashflow_report_a': cash_flow_report_test_rate, 'cashflow_report_b': cash_flow_report_secondary_cost}
         else:
@@ -313,16 +288,16 @@ class AutoBellETL:
             if save_bep_secondary.empty and cashflow_report_b.empty:
                 comp_report.to_sql('comparison_report', conn, if_exists='replace', index=False)
                 save_bep_test.to_sql('savings_bep_report', conn, if_exists='replace', index=False)
-                cashflow_report_a.to_sql('cash_flow_report1', conn, if_exists='replace', index=False)
+                cashflow_report_a.to_sql('cash_flow_report', conn, if_exists='replace', index=False)
                     
             else:
                 comp_report.to_sql('comparison_report', conn, if_exists='replace', index=False)
                 save_bep_test.to_sql('savings_bep_report', conn, if_exists='replace', index=False)
-                cashflow_report_a.to_sql('cash_flow_report1', conn, if_exists='replace', index=False)
+                cashflow_report_a.to_sql('cash_flow_report', conn, if_exists='replace', index=False)
                 save_bep_secondary.to_sql('savings_bep_report', conn, if_exists='append', index=False)
-                cashflow_report_b.to_sql('cash_flow_report1', conn, if_exists='replace', index=False)
+                cashflow_report_b.to_sql('cash_flow_report', conn, if_exists='append', index=False)
             
-            return True
+        return True
             
     def autobell_reports(self):
         # Extraction from csv
