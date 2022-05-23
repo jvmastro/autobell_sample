@@ -59,10 +59,7 @@ save-bep:
 
 # Configuration specific to cash flow report
 cashflow:
-  report_date_col: 'report_date'
-  year_col: 'year'
-  cash_flow_col: 'cash_flow'
-  year_col_values: ['project_install', 'year_1', 'year_2', 'year_3', 'year_4', 'year_5', 'year_6', 'year_7', 'year_8', 'year_9', 'year_10']
+  cashflow_col_list: ['report_date','project_install', 'year_1', 'year_2', 'year_3', 'year_4', 'year_5', 'year_6', 'year_7', 'year_8', 'year_9', 'year_10']
 
 #Logging Configuration 
 
