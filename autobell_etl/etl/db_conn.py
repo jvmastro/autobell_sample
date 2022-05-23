@@ -10,7 +10,7 @@ class HerokuDBConnection:
 
 
         # Now create the engine
-        self.engine = create_engine(self.DB_URI, echo=True, future=True)
+        self.engine = create_engine(self.DB_URI, echo=True)
         # Make the session maker
         self.session_maker = sessionmaker(bind=self.engine)
 
