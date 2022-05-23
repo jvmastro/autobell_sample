@@ -5,13 +5,13 @@ import dash_bootstrap_components as dbc
 import plotly.express as px
 import pandas as pd
 
-from autobell_etl.etl.db_conn import HerokuDBConnection
+from heroku_settings.db_conn import HerokuDBConnector
 from functools import lru_cache
 
 
 from sqlalchemy.ext.automap import automap_base
 
-db_connection = HerokuDBConnection()
+db_connection = HerokuDBConnector()
 session = db_connection.session
 
 Base = automap_base()
