@@ -202,7 +202,7 @@ class AutoBellETL:
         trg_car_wash_data_df[self.common_trg_configs.trg_consumption_gallon_col] = round((trg_car_wash_data_df[self.common_trg_configs.trg_end_meter_gallon_col] - trg_car_wash_data_df[self.common_trg_configs.trg_start_meter_gallon_col]), 2)
         
         # Create gallons per car column for all data df
-        trg_car_wash_data_df[self.common_trg_configs.trg_gallons_car_col] = round(trg_car_wash_data_df[self.common_trg_configs.trg_consumption_gallon_col] / trg_car_wash_data_df[self.common_trg_configs.trg_cars_col], 2)
+        trg_car_wash_data_df[self.common_trg_configs.trg_gallons_car_col] = round(trg_car_wash_data_df[self.common_trg_configs.trg_consumption_gallon_col]  / trg_car_wash_data_df[self.common_trg_configs.trg_cars_col], 2)
         
         #Create Test Period Report
         test_period_report = trg_car_wash_data_df[(trg_car_wash_data_df[self.common_trg_configs.trg_start_date_col] == test_period_start_date) & (trg_car_wash_data_df[self.common_trg_configs.trg_end_date_col] == test_period_end_date)].reset_index(drop=True)
@@ -211,22 +211,24 @@ class AutoBellETL:
         #Create Pre-Install Report
         
         pre_install_report = trg_car_wash_data_df[(trg_car_wash_data_df[self.common_trg_configs.trg_start_date_col] < test_period_start_date) & (trg_car_wash_data_df[self.common_trg_configs.trg_end_date_col] < test_period_end_date)].reset_index(drop=True)
+        pre_install_report[self.common_trg_configs.trg_consumption_gallon_col] = pre_install_report[self.common_trg_configs.trg_consumption_gallon_col] - ((2200.00*4.00)/12.00)
+        
         
         ## Calculate pre-install stats
         pre_install_days_mean = pre_install_report[self.common_trg_configs.trg_days_col].mean() # save for later use
         pre_install_consumption_gal_mean = round(pre_install_report[self.common_trg_configs.trg_consumption_gallon_col].mean(),2)
         pre_install_cars_mean = round(pre_install_report[self.common_trg_configs.trg_cars_col].mean(),2)
-        pre_install_gallons_car_mean = round(pre_install_report[self.common_trg_configs.trg_gallons_car_col].mean(),2)
+        pre_install_gallons_car_mean = round(pre_install_consumption_gal_mean / pre_install_cars_mean ,2)
         
         # Calculate Post-Install Comparison Stats
         cars_serviced_diff =  test_period_report[self.common_trg_configs.trg_cars_col][0] - pre_install_cars_mean
         #cars_serviced_diff_percentage = round((cars_serviced_diff / pre_install_cars_mean) * 10.000, 2)
         
-        consumption_diff =  test_period_report[self.common_trg_configs.trg_consumption_gallon_col][0] - pre_install_consumption_gal_mean 
+        consumption_diff =  abs(test_period_report[self.common_trg_configs.trg_consumption_gallon_col][0] - pre_install_consumption_gal_mean)
         #consumption_diff_percentage = round((consumption_diff / pre_install_consumption_gal_mean) * 100.00, 2)
         
         gallons_car_diff = test_period_report[self.common_trg_configs.trg_gallons_car_col][0] - pre_install_gallons_car_mean
-        gallons_car_diff_percentage = round((gallons_car_diff / pre_install_gallons_car_mean) * 100.00,2)
+        gallons_car_diff_percentage = abs(round((gallons_car_diff / pre_install_gallons_car_mean) * 100.00,2))
     
         
         # Create comaprison dataframe
@@ -296,6 +298,10 @@ class AutoBellETL:
                 cashflow_report_a.to_sql('cash_flow_report', conn, if_exists='replace', index=False)
                 save_bep_secondary.to_sql('savings_bep_report', conn, if_exists='append', index=False)
                 cashflow_report_b.to_sql('cash_flow_report', conn, if_exists='append', index=False)
+                
+            conn.execute('ALTER TABLE savings_bep_report ADD PRIMARY KEY (fluidlytix_project_cost);')
+            conn.execute('ALTER TABLE cash_flow_report ADD PRIMARY KEY (project_install);')
+            conn.execute('ALTER TABLE comparison_report ADD PRIMARY KEY (report_date);')
             
         return True
             
