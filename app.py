@@ -1,100 +1,86 @@
-from click import style
-from dash import Dash, html, dcc, dash_table
+from dash import Dash, html, dcc
 
 import dash_bootstrap_components as dbc 
 import plotly.express as px
 import pandas as pd
 
-from heroku_settings.db_conn import HerokuDBConnector
-from functools import lru_cache
+from common.heroku_psql import InternalHerokuDBConnector
 
 
-from sqlalchemy.ext.automap import automap_base
+db_connection = InternalHerokuDBConnector()
+Session = db_connection.Session
 
-db_connection = HerokuDBConnector()
-session = db_connection.session
+all_query = "SELECT start_date, end_date, cars, consumption_cubic, consumption_gal, gallons_car FROM autobell_complete_data;"
+pre_post_query = "SELECT * FROM pre_post_reports ORDER BY id DESC LIMIT 1;"
+payback_query = """
+        SELECT annual_water_cost, savings_rate, monthly_savings, annual_savings, savings_ten, breakeven_months, fluidlytix_cost 
+        FROM 
+            (SELECT *, ROW_NUMBER() OVER (PARTITION BY id ORDER BY date_added DESC) rank FROM payback_reports) sub
+        WHERE sub.rank = 1;"""
+cashflow_query = """
+        SELECT project_install, year_1, year_2, year_3, year_4, year_5, year_6, year_7, year_8, year_9, year_10 
+        FROM 
+            (SELECT *, ROW_NUMBER() OVER (PARTITION BY id ORDER BY date_added DESC) rank FROM cashflow_reports) sub
+        WHERE sub.rank = 1;"""
 
-Base = automap_base()
-Base.prepare(db_connection.engine, reflect=True)
+with Session as session:
+    all_df = pd.read_sql(all_query, session.connection())
+    pre_post_df = pd.read_sql(pre_post_query, session.connection())
+    payback_df = pd.read_sql(payback_query, session.connection())
+    cashflow_df = pd.read_sql(cashflow_query, session.connection())
+    
 
-TestPreInstall = Base.classes.comparison_report
-PaybackDetail = Base.classes.savings_bep_report
-CashFlowDetail = Base.classes.cash_flow_report
+def constrcut_all_table(all_df):
+    all_df['start_date'] = all_df.start_date.dt.strftime('%Y-%m-%d')
+    all_df['end_date'] = all_df.end_date.dt.strftime('%Y-%m-%d')
+    all_df[['cars','consumption_cubic', 'consumption_gal', 'gallons_car']] = all_df[['cars','consumption_cubic', 'consumption_gal', 'gallons_car']].applymap('{:,.2f}'.format)
+    all_df.columns = ['Start Date', 'End Date', 'Cars', 'Usage (Cubic)', 'Usage (Gallon)', 'Gal/Car']
 
+    all_data_table = dbc.Table.from_dataframe(all_df, striped=True, bordered=True, hover=True)
+    
+    return all_data_table
 
-@lru_cache()
-def get_key_stats(session, mapped_class, result_column_name, comp_column_name=None, diff_column_name=None):
-    with session as s:
-        query = s.query(mapped_class).first()
+all_data_tbl = constrcut_all_table(all_df)
+    
+def construct_payback_table(payback_df):
         
-        if result_column_name == 'test_period_days':
-            return '{:.0f}'.format(getattr(query, result_column_name))
-        
-        result_stat = '{:,.2f}'.format(getattr(query, result_column_name))
-        comp_stat = '{:,.2f}'.format(getattr(query, comp_column_name))
-        
-        if diff_column_name == 'percent_diff_gallons_car':
-            diff = '{:.2f}%'.format(getattr(query, diff_column_name))
-        else:
-            diff = '{:,.2f}'.format(getattr(query, diff_column_name))
-    return result_stat, comp_stat, diff
-
-
-days = get_key_stats(session, TestPreInstall, 'test_period_days')
-cars_result, cars_comp, cars_diff  = get_key_stats(session, TestPreInstall, 'cars_test_period', 'cars_pre_install', 'diff_cars')
-usage_result, usage_comp, usage_diff  = get_key_stats(session, TestPreInstall, 'consumption_test_period','consumption_pre_install', 'diff_consumption')
-gal_car_result, gal_car_comp, gal_car_diff  = get_key_stats(session, TestPreInstall, 'gallons_car_test_period', 'gallons_car_pre_install', 'percent_diff_gallons_car')
-
-
-def construct_payback_table(session, fluidlytix_cost):
-    with session as s:
-        payback_df = pd.read_sql(f"""
-                                 SELECT annual_water_bill,savings_rate, monthly_savings,annual_savings, savings_10_year,bep_months, fluidlytix_project_cost 
-                                 FROM savings_bep_report WHERE fluidlytix_project_cost = {fluidlytix_cost}
-                                 """, s.connection())
-    payback_df[['annual_water_bill', 'monthly_savings', 'annual_savings', 'savings_10_year', 'fluidlytix_project_cost']] = payback_df[['annual_water_bill', 'monthly_savings', 'annual_savings', 'savings_10_year', 'fluidlytix_project_cost']].applymap('${:,.2f}'.format)
+    payback_df[['annual_water_cost', 'monthly_savings', 'annual_savings','savings_ten', 'fluidlytix_cost']] = payback_df[['annual_water_cost', 'monthly_savings', 'annual_savings','savings_ten', 'fluidlytix_cost']].applymap('${:,.2f}'.format)
     payback_df['savings_rate']=payback_df['savings_rate'].map('{:.2f}%'.format)
-    payback_df = payback_df.rename(columns={"annual_water_bill": "Annual Water Bill", 
-                            "savings_rate": "Savings Rate",
-                            "monthly_savings": "Monthly Savings",
-                            "annual_savings": "Annual Savings",
-                            "savings_10_year": "10-Year Savings",
-                            "bep_months": "Breakeven Point (Months)",
-                            "fluidlytix_project_cost": "Water Savings Solution"})
+    payback_df = payback_df.rename(columns=
+                                        {'annual_water_cost': 'Annual Water Bill', 
+                                            'savings_rate': 'Savings Rate',
+                                            'monthly_savings': 'Monthly Savings',
+                                            'annual_savings': 'Annual Savings',
+                                            'savings_ten': '10-Year Savings',
+                                            'breakeven_months': 'Breakeven Point (Months)',
+                                            'fluidlytix_cost': 'Water Savings Solution'})
     payback_table = dbc.Table.from_dataframe(payback_df, striped=True, bordered=True, hover=True, className='mt-4 mb-4')
     
     return payback_table
 
-current_payback_table = construct_payback_table(session, 5500.0)
+payback_table = construct_payback_table(payback_df)
 
-def construct_cash_flow_graph(session, fluidlytix_cost):
-    with session as s:
-        cash_flow_df = pd.read_sql(f"""
-                                 SELECT project_install, year_1, year_2, year_3, year_4, year_5, year_6, year_7, year_8, year_9, year_10
-                                 FROM cash_flow_report WHERE project_install = {fluidlytix_cost}
-                                 """, s.connection())
-        cash_flow_graph = px.bar(cash_flow_df.loc[0], x = cash_flow_df.columns.to_list(), y= cash_flow_df.loc[0])
-        cash_flow_graph.update_layout(
-            xaxis=dict(
-                title = None,
-                tickmode = 'array',
-                tickvals = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-                ticktext = [x.title().replace('_', ' ') for x in cash_flow_df.columns.to_list()],
-                tickangle= 45
-            ),
-            yaxis=dict(
-                title = 'Cash Flow ($)',
-                showticklabels = True,
-                hoverformat = '$,.2f',
-                tickformat = ',.0f'
+def construct_cashflow_graph(cashflow_df):
+    
+    cashflow_graph = px.bar(cashflow_df.loc[0] , x = cashflow_df.columns.to_list(), y= cashflow_df.loc[0])
+    cashflow_graph.update_layout(
+        xaxis=dict(
+            title = None,
+            tickmode = 'array',
+            tickvals = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+            ticktext = [x.title().replace('_', ' ') for x in cashflow_df.columns.to_list()],
+            tickangle= 45
         ),
-            margin=dict(l=20, r=20, t=20, b=20)
-    )
-    return cash_flow_graph
+        yaxis=dict(
+            title = 'Cash Flow ($)',
+            showticklabels = True,
+            hoverformat = '$,.2f',
+            tickformat = ',.0f'),
+        margin=dict(l=20, r=20, t=20, b=20))
+    
+    return cashflow_graph
 
-current_cash_flow_graph = construct_cash_flow_graph(session, -5500.00)
-        
-        
+cashflow_graph = construct_cashflow_graph(cashflow_df)        
 
 
 external_stylesheets = [dbc.themes.COSMO]
