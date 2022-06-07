@@ -53,8 +53,6 @@ class AutobellETL:
     
     def load(self, pre_post_dict, payback_dict, cashflow_dict):
         
-        create_tables(self._connector.engine)
-        
         with self._connector.Session as session:
             
             pre_post_data = self._pre_post_item(**pre_post_dict)
@@ -76,9 +74,9 @@ class AutobellETL:
         """
 
         # Extrcation
-        pre_data, post = self.extract()
+        pre_data, post_data = self.extract()
         # Transformation
-        pre_post_dict, payback_dict, cashflow_dict = self.transform(pre_data, post)
+        pre_post_dict, payback_dict, cashflow_dict = self.transform(pre_data, post_data)
         # Load
         self.load(pre_post_dict, payback_dict, cashflow_dict)
         
