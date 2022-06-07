@@ -91,7 +91,7 @@ server = app.server
 fluidlytix_logo = "https://static.wixstatic.com/media/160184_ad4c1492eb71433cab12f62ad924a4ef~mv2.png/v1/crop/x_0,y_0,w_600,h_499/fill/w_210,h_174,al_c,q_85,usm_0.66_1.00_0.01,enc_auto/FluidLytix-Logo.png"
 pws_logo = "https://pristineworldsolutions.com/wp-content/uploads/2021/03/big-logo.png"
 
-navbar_header = dbc.Navbar(
+navbar = dbc.Navbar(
     dbc.Container(
         [
             html.A(
@@ -99,7 +99,7 @@ navbar_header = dbc.Navbar(
                 dbc.Row(
                     [
                         dbc.Col(html.Img(src=fluidlytix_logo, height="75px")),
-                        dbc.Col(dbc.NavbarBrand("Post-Installation Report", className="ml-2", style={"color":"#FFFFFF"})),
+                        dbc.Col(dbc.NavbarBrand("Fluidlytix Post-Installation Report", className="ml-2", style={"color":"#FFFFFF"})),
                     ],
                     align="center",
                     )
@@ -111,7 +111,7 @@ navbar_header = dbc.Navbar(
     className="mb-4",
 )
 
-navbar_footer = dbc.Navbar(
+navbar2 = dbc.Navbar(
     dbc.Container(
         [
             html.A([
@@ -119,7 +119,7 @@ navbar_footer = dbc.Navbar(
                 dbc.Row(
                     [
                         dbc.Col(html.Img(src=pws_logo, height="75px")),
-                        dbc.Col(dbc.NavbarBrand("Pristine World Solutions: Channel Partner", className="ml-2", style={"color":"#FFFFFF"})),
+                        dbc.Col(dbc.NavbarBrand("Pristine World Solutions: Fluidlytix Channel Partner", className="ml-2", style={"color":"#FFFFFF"})),
                         ], align="center"),
                 ]
                 ),
@@ -130,41 +130,40 @@ navbar_footer = dbc.Navbar(
     className="mb-4",
 )
 
-install_details_tab_content = dbc.Card(
-    dbc.CardBody(
-        [
-            dcc.Markdown('''
-                        **Key Result:** _On average, post-install total water usage & gallons per car **decreased**, despite an increase in total cars washed._\n
-                         **Test Period Start:** April 7, 2022\n
-                         **Test Period End:** May 5, 2022\n
-                         
-                         **Location:**\n
-                         Autobell Carwash 25\n
-                         8525 Hankins Road,
-                         Charlotte, NC 28269
-                         
-                         **Valve Details:** (1) 2" Fluidlytix Valve
-                        
-                        '''),
-            dbc.CardImg(src="https://bloximages.newyork1.vip.townnews.com/statesville.com/content/tncms/assets/v3/editorial/7/2d/72d254e4-5f1c-5269-92eb-b1fd803969ce/5e90e5d3a2f8a.image.png?crop=1439%2C1439%2C0%2C0&resize=1439%2C1439&order=crop%2Cresize")
-        ]
-    ),
-    className="mt-3",
-)
+install_content = dbc.Card([
+    dbc.CardHeader('Installation Details', className="card-header"),
+    dbc.CardBody([
+        dcc.Markdown(f"""
+                     **Valve:** (1) 2" Fluidlytix Valve
+                     
+                     **Install Date:** March  11, 2021  
+                     
+                     **Post-Install Reporting Start Date:** April 7, 2021
+                     
+                     **Location:**  
+                     
+                    _Autobell Carwash 25_  
+                    
+                    _8525 Hankins Road, Charlotte, NC 28269_  
+                     
+                     
+                     """),
+        html.Hr(),
+        dbc.CardImg(src='https://bloximages.newyork1.vip.townnews.com/statesville.com/content/tncms/assets/v3/editorial/7/2d/72d254e4-5f1c-5269-92eb-b1fd803969ce/5e90e5d3a2f8a.image.png?crop=1439%2C1439%2C0%2C0&resize=1439%2C1439&order=crop%2Cresize', className='mt-3 mb-3'),
+        html.Hr()
+        ])
+    ], className='mt-3')
 
-days_card=dbc.Card(
-    [
-        dbc.CardHeader("Test Period Days", className="card-header"),
-        dbc.CardBody(
-            [
-                dcc.Markdown(
-                    f'''
-                    ## {days}
-                    ''',
-                    style={'textAlign': 'center'}
-                )
-            ]
-        ),
+savings_card=dbc.Card([
+    dbc.CardHeader("Fluidlytix Savings Rate", className="card-header"),
+    dbc.CardBody([
+        dcc.Markdown(
+            f'''
+            ## {'{:.2f}%'.format(pre_post_df.pct_change_gal_car[0])}
+            ''',style={'textAlign': 'center'}
+            ),
+        ]),
+    dbc.CardFooter('Target: 15.00%'),
     ],
      className="card border-success mt-3",
 )
@@ -176,13 +175,13 @@ cars_card=dbc.Card(
             [
                 dcc.Markdown(
                     f'''
-                    ## {cars_result}
+                    ## {'{:,.2f}'.format(pre_post_df.post_cars[0])}
                     ''',
                     style={'textAlign': 'center'}
                 )
             ]
         ),
-        dbc.CardFooter(f"↑ {cars_diff} ({cars_comp})", className="card-footer"),
+        dbc.CardFooter(f"↑ {'{:,.2f}'.format(abs(pre_post_df.total_change_cars[0]))} ({'{:,.2f}'.format(pre_post_df.pre_cars[0])})", className="card-footer"),
     ],
      className="card border-success mt-3",
 )
@@ -194,82 +193,77 @@ usage_card=dbc.Card(
             [
                 dcc.Markdown(
                     f'''
-                    ## {usage_result}
+                    ## {'{:,.2f}'.format(pre_post_df.post_usage[0])}
                     ''',
                     style={'textAlign': 'center'}
                 )
             ]
         ),
-        dbc.CardFooter(f"↓ {usage_diff} ({usage_comp})", className="card-footer"),
+        dbc.CardFooter(f"↓ {'{:,.2f}'.format(abs(pre_post_df.total_change_usage[0]))} ({'{:,.2f}'.format(pre_post_df.pre_usage[0])})", className="card-footer"),
     ],
      className="card border-success mt-3",
 )
 
 gal_car_card=dbc.Card(
     [
-        dbc.CardHeader("Gallons/Car", className="card-header"),
+        dbc.CardHeader("Gallons per Car", className="card-header"),
         dbc.CardBody(
             [
                 dcc.Markdown(
                     f'''
-                    ## {gal_car_result}
+                    ## {'{:.2f}'.format(pre_post_df.post_gal_car[0])}
                     ''',
                     style={'textAlign': 'center'})
             ]
         ),
-        dbc.CardFooter(f"↓ {gal_car_diff} ({gal_car_comp})", className="card-footer"),
+        dbc.CardFooter(f"↓ {'{:.2f}%'.format(pre_post_df.pct_change_gal_car[0])} ({'{:.2f}'.format(pre_post_df.pre_gal_cal[0])})", className="card-footer"),
     ],
      className="card border-success mt-3",
 )
 
-current_payback_tab_content = dbc.Col(
-    [
-        current_payback_table,
-        dbc.Row([
-            dbc.Col([
-                dbc.Alert(" ⓘ Hover over columns to display total cash flow", color="primary")
-                ], width = 6 , align = 'end')
-            ], justify = 'center'),
-        dcc.Graph(figure = current_cash_flow_graph)
-        ]
-    )
-
 app.layout = html.Div([
-    navbar_header,
+    navbar,
     dbc.Container([
         dbc.Row([
-            dbc.Col(width=4, children=[
-                dbc.Tabs(
-                    [
-                        dbc.Tab(install_details_tab_content, label='Pilot Installation Details'),
-                    ]
-                    )
-                ]),
-            dbc.Col(width=8, children=[
-                dbc.Tabs(
-                    [
-                        dbc.Tab(label='Key Statistics', children=[
-                            dbc.Row([
-                                dbc.Col(days_card, width = 3),
-                                dbc.Col(cars_card, width = 3),
-                                dbc.Col(usage_card, width = 3),
-                                dbc.Col(gal_car_card, width = 3)
-                                ], className='mb-4'),
-                            dbc.Row([
-                                dbc.Tabs(
-                                    [
-                                        dbc.Tab(current_payback_tab_content, label = 'Cash Flow Schedule - Autobell 25')
-                                    ])
-                                ])
-                            ])
-                        ]
-                    )
-                ]),
+            dbc.Col(width = 12, children =[
+                dbc.Tabs([
+                    dbc.Tab(label= 'Autobell 25',
+                            label_class_name = 'fw-bold',
+                            children=[
+                                dbc.Row([
+                                    dbc.Col(install_content,width=4),
+                                    dbc.Col([
+                                        dbc.Row([
+                                            dbc.Col(savings_card, width = 3),
+                                            dbc.Col(cars_card, width = 3),
+                                            dbc.Col(usage_card, width = 3),
+                                            dbc.Col(gal_car_card, width = 3)
+                                            ]),
+                                        dbc.Row([
+                                            dbc.Col([
+                                                dbc.Tabs([
+                                                    dbc.Tab(label = 'Cash Flow Reports',
+                                                            label_class_name = 'fw-bold mt-3', children=[
+                                                                payback_table,
+                                                                dcc.Graph(figure = cashflow_graph)
+                                                                ]),
+                                                    dbc.Tab(label = 'Meter Reads',
+                                                            label_class_name = 'fw-bold mt-3',
+                                                            children = [html.Div(all_data_tbl, className='scrollit')]
+                                                            )
+                                                    ])
+                                                ])
+                                            ])
+                                        ]),
+                                    ]),
+                                ]
+                            ),
+                    ])
+                ])
             ])
         ]),
-    navbar_footer
+    navbar2
     ])
-                
+
 if __name__== '__main__':
     app.run_server(debug=True)
-    
